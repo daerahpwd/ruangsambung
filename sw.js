@@ -1,6 +1,6 @@
 /* Service worker Ruang Sambung — cangkang aplikasi tersedia offline; panggilan ke server tidak pernah di-cache. */
-const V = 'rs-v1.0.0';
-const SHELL = ['./', 'index.html', 'css/app.css', 'js/config.js', 'js/api.js', 'js/app.js', 'manifest.webmanifest', 'icons/icon-192.png'];
+const V = 'rs-v1.1.0';
+const SHELL = ['./', 'index.html', 'css/app.css', 'js/config.js', 'js/api.js', 'js/app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/logo-simbol-putih.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).catch(() => { }).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim()));

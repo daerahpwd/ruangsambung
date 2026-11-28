@@ -1,8 +1,10 @@
 /* Pengaturan (Super Admin): Pengguna, Referensi wilayah & pilihan, Template WA, Rahasia & AI, Audit */
 (function () {
   const { esc, ic } = App;
-  const ROLE_PILL = { super_admin: 'background:var(--navy);color:#fff', admin_kelompok: 'background:var(--teal-soft);color:var(--teal)', operator_l: 'background:#DBEAFE;color:#1D4ED8', operator_p: 'background:#FCE7F3;color:#BE185D' };
-  const TABS = [['pengguna', 'Pengguna'], ['referensi', 'Referensi'], ['template', 'Template WA'], ['rahasia', 'Rahasia & AI'], ['audit', 'Audit']];
+  const OPL = 'background:#DBEAFE;color:#1D4ED8', OPP = 'background:#FCE7F3;color:#BE185D';
+  const ROLE_PILL = { super_admin: 'background:var(--navy);color:#fff', admin_desa: 'background:#E0E7FF;color:#3730A3', admin_kelompok: 'background:var(--teal-soft);color:var(--teal)',
+    operator_l: OPL, operator_p: OPP, operator_desa_l: OPL, operator_desa_p: OPP, operator_kelompok_l: OPL, operator_kelompok_p: OPP };
+  const TABS = [['pengguna', 'Pengguna'], ['referensi', 'Referensi'], ['template', 'Template WA'], ['ai', 'Penyedia AI'], ['audit', 'Audit']];
   const kopi = async t => { try { await navigator.clipboard.writeText(t); App.toast('Disalin', 'ok'); } catch (e) { App.toast('Salin manual', 'warn'); } };
   const refresh = async () => { API.invalidasi(['boot']); await App.boot().catch(() => { }); }; // muat ulang referensi/status AI
 
@@ -13,7 +15,7 @@
       if (!rows) { box.innerHTML = App.skeleton(2); return; }
       box.innerHTML = '<div class="row between" style="margin-bottom:10px"><b>' + rows.length + ' pengguna</b><button class="btn pri sm" id="tb">' + ic('plus', 16) + ' Tambah</button></div><div class="card" style="padding:4px 16px"><div class="list">' +
         rows.map(u => '<div><div class="tile">' + esc(App.inisial(u.nama)) + '</div><div class="grow"><b>' + esc(u.nama) + '</b> <span class="muted">@' + esc(u.username) + '</span><div class="row" style="gap:6px;margin-top:3px;flex-wrap:wrap"><span class="pill" style="' + ROLE_PILL[u.peran] + '">' + esc(App.peran[u.peran] || u.peran) + '</span>' +
-          (u.kelompok ? '<span class="muted" style="font-size:12px">' + esc(u.kelompok) + '</span>' : '') + (u.aktif ? '' : '<span class="pill p-alfa">Nonaktif</span>') + '</div></div>' +
+          ((u.kelompok || u.desa) ? '<span class="muted" style="font-size:12px">' + esc(u.kelompok || 'Desa ' + u.desa) + '</span>' : '') + (u.aktif ? '' : '<span class="pill p-alfa">Nonaktif</span>') + '</div></div>' +
           '<button class="btn sm" data-u="' + esc(u.username) + '" data-a="ubah">Ubah</button><button class="btn sm" data-u="' + esc(u.username) + '" data-a="pin" aria-label="Reset PIN">' + ic('lock', 16) + '</button></div>').join('') + '</div></div>';
       box.querySelector('#tb').onclick = () => form(null);
     }
@@ -30,14 +32,15 @@
       const kel = (App.state.ref.desa || []).reduce((a, d) => a.concat(d.kelompok.map(k => k.nama)), []);
       const s = App.sheet('<h3 style="margin-bottom:10px">' + (u ? 'Ubah pengguna' : 'Tambah pengguna') + '</h3><form id="f"><div class="field"><label>Username</label><input class="input" name="un" value="' + esc(u ? u.username : '') + '"' + (u ? ' disabled' : '') + ' autocapitalize="none" placeholder="huruf kecil, angka, titik"></div>' +
         '<div class="field"><label>Nama</label><input class="input" name="nm" value="' + esc(u ? u.nama : '') + '"></div><div class="field"><label>Peran</label><select class="input" name="pr">' + Object.keys(App.peran).map(k => '<option value="' + k + '"' + (u && u.peran === k ? ' selected' : '') + '>' + App.peran[k] + '</option>').join('') + '</select></div>' +
+        '<div class="field" id="fd"><label>Desa</label><select class="input" name="ds">' + (App.state.ref.desa || []).map(d => '<option' + (u && u.desa === d.nama ? ' selected' : '') + '>' + esc(d.nama) + '</option>').join('') + '</select></div>' +
         '<div class="field" id="fk"><label>Kelompok</label><select class="input" name="kl">' + kel.map(k => '<option' + (u && u.kelompok === k ? ' selected' : '') + '>' + esc(k) + '</option>').join('') + '</select></div>' +
         (u ? '<label class="row" style="margin-bottom:12px"><input type="checkbox" name="ak"' + (u.aktif ? ' checked' : '') + '> Akun aktif</label>' : '<div class="field"><label>PIN awal (opsional, 6-12 angka)</label><input class="input" name="pn" inputmode="numeric" placeholder="kosongkan untuk dibuat otomatis"></div>') +
         '<div class="err" id="e" hidden></div><button class="btn pri blk">Simpan</button></form>');
-      const f = s.querySelector('#f'), e = s.querySelector('#e'), sync = () => { s.querySelector('#fk').hidden = f.pr.value !== 'admin_kelompok'; }; f.pr.onchange = sync; sync();
+      const f = s.querySelector('#f'), e = s.querySelector('#e'), sync = () => { const lv = App.lvDari(f.pr.value); s.querySelector('#fd').hidden = lv !== 'desa'; s.querySelector('#fk').hidden = lv !== 'kelompok'; }; f.pr.onchange = sync; sync();
       f.onsubmit = async ev => {
         ev.preventDefault(); e.hidden = true;
         try {
-          const r = await API.tulis('admin.user.save', { username: u ? u.username : f.un.value, nama: f.nm.value, peran: f.pr.value, kelompok: f.kl.value, aktif: u ? f.ak.checked : true, pin: f.pn ? f.pn.value : '' }, ['admin.user.']);
+          const r = await API.tulis('admin.user.save', { username: u ? u.username : f.un.value, nama: f.nm.value, peran: f.pr.value, desa: f.ds.value, kelompok: f.kl.value, aktif: u ? f.ak.checked : true, pin: f.pn ? f.pn.value : '' }, ['admin.user.']);
           rows = null; gambar(); load(); App.sheetTutup(); App.toast('Pengguna tersimpan', 'ok'); if (r.pinAwal) tampilPin('Pengguna dibuat', r.username, r.pinAwal);
         } catch (x) { e.textContent = x.message; e.hidden = false; }
       };
@@ -88,24 +91,29 @@
     }).catch(e => { box.innerHTML = '<div class="empty"><b>Gagal memuat</b>' + esc(e.message) + '</div>'; });
   }
 
-  // ---------- Rahasia & AI ----------
-  function rahasia(box) {
-    const BARIS = [['GEMINI_API_KEY', 'Kunci API Gemini', true], ['GEMINI_MODEL', 'Model Gemini', false], ['AI_AKTIF', 'Asisten AI aktif', 'sw'], ['FONNTE_TOKEN', 'Token Fonnte (opsional)', true], ['FONNTE_AKTIF', 'Pengiriman Fonnte aktif', 'sw']];
-    async function simpan(k, v) { try { await API.tulis('admin.rahasia.save', { kunci: k, nilai: v }, ['admin.rahasia.']); App.toast('Tersimpan', 'ok'); await refresh(); muat(); } catch (x) { App.galat(x); } }
+  // ---------- Penyedia AI (modul setup-ai-api) + Fonnte ----------
+  function muatSkrip(src) {
+    if (window.AiSetup) return Promise.resolve();
+    return new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = src + '?v=' + window.RS_CONFIG.VERSION; sc.onload = ok; sc.onerror = () => no(new Error('Modul AI gagal dimuat.')); document.head.appendChild(sc); });
+  }
+  // Adaptor: modul AI memerlukan balasan utuh {success,data,message}
+  const apiPenuh = (aksi, data) => API.call(aksi, data || {}, { penuh: true, tulis: true, timeout: 55000 }).catch(e => ({ success: false, message: e.message }));
+  function aiTab(box) {
+    box.innerHTML = '<div id="panelAi"></div><h3 style="margin:22px 0 8px">Notifikasi WhatsApp (Fonnte, opsional)</h3><div id="fonnte"></div>';
+    muatSkrip('js/ai-setup.js').then(() => {
+      AiSetup.pasang(box.querySelector('#panelAi'), { api: apiPenuh, toast: (m, t) => App.toast(m, t === 'bad' ? 'err' : t), saatBerubah: () => { refresh(); } });
+    }).catch(e => { box.querySelector('#panelAi').innerHTML = '<div class="empty"><b>Gagal memuat</b>' + esc(e.message) + '</div>'; });
+    const BARIS = [['FONNTE_TOKEN', 'Token Fonnte', true], ['FONNTE_AKTIF', 'Pengiriman Fonnte aktif', 'sw']];
+    async function simpan(k, v) { try { await API.tulis('admin.rahasia.save', { kunci: k, nilai: v }, ['admin.rahasia.']); App.toast('Tersimpan', 'ok'); muat(); } catch (x) { App.galat(x); } }
     function gambar(d) {
-      box.innerHTML = '<div class="card" style="background:var(--teal-soft);border-color:transparent;font-size:13px"><b>Asisten AI gratis (Google AI Studio)</b><br>Buat kunci di <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700">aistudio.google.com</a>, tempel di bawah, lalu aktifkan. Nilai kunci disimpan di server (Script Properties) dan tidak pernah ditampilkan utuh.' +
-        '<div class="muted" style="margin-top:6px">Catatan privasi: paket gratis Gemini dapat memakai data untuk peningkatan produk Google. Asisten hanya mengirim data minimum (nama, kelompok, jenjang, umur).</div></div>' +
-        BARIS.map(b => { const it = d[b[0]] || {}; return '<div class="card" data-k="' + b[0] + '"><div class="row between"><b>' + b[1] + '</b>' + (b[2] === 'sw' ? '<label class="row" style="gap:6px"><input type="checkbox" class="sw"' + (it.nilai === 'YA' ? ' checked' : '') + '> ' + (it.nilai === 'YA' ? 'Aktif' : 'Nonaktif') + '</label>' : '<span class="pill ' + (it.terisi ? 'p-aktif' : 'p-belum') + '">' + (it.terisi ? 'Terisi' : 'Kosong') + '</span>') + '</div>' +
-          (b[2] === 'sw' ? '' : (it.terisi ? '<div class="muted" style="margin-top:4px">' + esc(it.nilai) + '</div>' : '') + '<div class="row" style="margin-top:8px"><input class="input v" ' + (b[2] === true ? 'type="password" autocomplete="off"' : '') + ' placeholder="' + (b[0] === 'GEMINI_MODEL' ? 'gemini-2.5-flash (bawaan)' : 'Tempel nilai baru') + '"><button class="btn pri sm s">Simpan</button>' + (it.terisi ? '<button class="btn danger sm h">Hapus</button>' : '') + '</div>') + '</div>'; }).join('');
-      box.querySelectorAll('[data-k]').forEach(c => {
-        const k = c.dataset.k, sw = c.querySelector('.sw'), s = c.querySelector('.s'), h = c.querySelector('.h');
-        if (sw) sw.onchange = () => simpan(k, sw.checked ? 'YA' : '');
-        if (s) s.onclick = () => { const v = c.querySelector('.v').value.trim(); if (v) simpan(k, v); };
-        if (h) h.onclick = () => simpan(k, '');
-      });
+      box.querySelector('#fonnte').innerHTML = '<div class="muted" style="font-size:12px;margin-bottom:8px">Tombol Bagikan WA bawaan tidak butuh Fonnte. Isi ini hanya bila ingin pengiriman otomatis. Nilai token tidak pernah ditampilkan utuh.</div>' + BARIS.map(b => { const it = d[b[0]] || {};
+        return '<div class="card" data-k="' + b[0] + '"><div class="row between"><b>' + b[1] + '</b>' + (b[2] === 'sw' ? '<label class="row" style="gap:6px"><input type="checkbox" class="sw"' + (it.nilai === 'YA' ? ' checked' : '') + '> ' + (it.nilai === 'YA' ? 'Aktif' : 'Nonaktif') + '</label>' : '<span class="pill ' + (it.terisi ? 'p-aktif' : 'p-belum') + '">' + (it.terisi ? 'Terisi' : 'Kosong') + '</span>') + '</div>' +
+          (b[2] === 'sw' ? '' : (it.terisi ? '<div class="muted" style="margin-top:4px">' + esc(it.nilai) + '</div>' : '') + '<div class="row" style="margin-top:8px"><input class="input v" type="password" autocomplete="off" placeholder="Tempel nilai baru"><button class="btn pri sm s">Simpan</button>' + (it.terisi ? '<button class="btn danger sm h">Hapus</button>' : '') + '</div>') + '</div>'; }).join('');
+      box.querySelectorAll('#fonnte [data-k]').forEach(c => { const k = c.dataset.k, sw = c.querySelector('.sw'), sb = c.querySelector('.s'), h = c.querySelector('.h');
+        if (sw) sw.onchange = () => simpan(k, sw.checked ? 'YA' : ''); if (sb) sb.onclick = () => { const v = c.querySelector('.v').value.trim(); if (v) simpan(k, v); }; if (h) h.onclick = () => simpan(k, ''); });
     }
     function muat() { API.baca('admin.rahasia.get', {}, { segar: 0, onData: gambar, onGalat: App.galat }).catch(App.galat); }
-    box.innerHTML = App.skeleton(2); muat();
+    muat();
   }
 
   // ---------- Audit ----------
@@ -122,6 +130,6 @@
     ctx.el.innerHTML = '<a href="#/saya" class="row muted" style="margin-bottom:8px">' + ic('back') + ' Saya</a><h1 style="font-size:20px;margin-bottom:10px">Pengaturan</h1><div class="row" style="overflow-x:auto;gap:6px;margin-bottom:12px;padding-bottom:2px">' +
       TABS.map(t => '<a class="chip btn-chip' + (t[0] === tab ? ' on' : '') + '" href="#/pengaturan/' + t[0] + '" style="height:36px;padding:0 14px;white-space:nowrap">' + t[1] + '</a>').join('') + '</div><div id="bx"></div>';
     const box = ctx.el.querySelector('#bx');
-    ({ pengguna: pengguna, referensi: referensi, template: template, rahasia: rahasia, audit: audit })[tab](box);
+    ({ pengguna: pengguna, referensi: referensi, template: template, ai: aiTab, audit: audit })[tab](box);
   } };
 })();

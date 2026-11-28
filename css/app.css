@@ -96,3 +96,25 @@ input[type=date].input{font-size:14px}
 .stack{display:flex;align-items:flex-end;gap:6px;height:150px}.stack>div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;text-align:center;font-size:10px;color:var(--tx2)}
 .stack .col{display:flex;flex-direction:column-reverse;border-radius:6px 6px 0 0;overflow:hidden;min-height:2px}
 .hb{display:flex;align-items:center;gap:8px;margin:7px 0}.hb .nm{width:34%;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb .tr{flex:1;height:10px;border-radius:999px;background:var(--alt);overflow:hidden}.hb .tr i{display:block;height:100%;border-radius:999px}.hb .v{width:38px;text-align:right;font-weight:700;font-size:12px}
+
+/* ===== v1.1 ===== */
+/* Login: kartu simetris tepat di tengah layar (laptop & HP) */
+body[data-shell="bare"] #view{margin-left:0;max-width:none;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+body[data-shell="bare"] #view>*{width:100%;max-width:400px;margin:0}
+/* Logo: hijau di mode terang, mint di mode gelap (kontras dengan latar) */
+.logo-l{display:block}.logo-d{display:none}
+:root[data-mode="dark"] .logo-l{display:none}:root[data-mode="dark"] .logo-d{display:block}
+#topbar .brand{height:30px;width:auto;flex:none}
+#nav .navbrand{display:none}
+@media(min-width:900px){#nav{padding-top:200px}#nav .navbrand{display:block;position:absolute;top:18px;left:0;right:0;text-align:center}#nav .navbrand img{width:128px;height:auto}}
+/* Penyedia AI (modul setup-ai-api) mengikuti tema aplikasi */
+#panelAi{--ink:var(--tx);--ink-2:var(--tx2);--line:var(--bd);--subtle:var(--alt);--ok:var(--hadir);--ok-soft:var(--teal-soft);--ok-ink:var(--hadir);--yellow:var(--teal);--yellow-soft:var(--teal-soft);--r-card:16px;--sh1:var(--sh);--blue-soft:var(--teal-soft);--blue-ink:var(--teal)}
+.ais .ais-btn,.ais .ais-select,.ais .ais-input{background:var(--card);color:var(--tx)}
+.ais .ais-btn.gelap{background:var(--navy);border-color:var(--navy);color:#fff}.ais .ais-btn.bahaya{background:#FEE2E2;border-color:#FEE2E2;color:#991B1B}
+.ais .ais-switch input:checked+span{background:var(--teal)}
+/* Asisten */
+.chat{display:flex;flex-direction:column;gap:8px;min-height:40vh}.msg{max-width:88%;padding:10px 13px;border-radius:16px;line-height:1.5;word-break:break-word}
+.msg.u{align-self:flex-end;background:var(--teal);color:#fff;border-bottom-right-radius:4px}.msg.a{align-self:flex-start;background:var(--card);border:1px solid var(--bd);border-bottom-left-radius:4px}
+.dots span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--tx2);animation:dt 1s infinite}.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes dt{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.askbar{position:sticky;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));background:var(--bg);padding:8px 0}

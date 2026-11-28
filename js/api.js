@@ -39,8 +39,12 @@
         try { res = await kirim(action, data, opt.timeout); err = null; break; } catch (e) { err = e; await sleep(700); }
       }
       if (err) { const e = new Error(err.name === 'AbortError' ? 'Server lambat merespons. Coba lagi.' : (err.message || 'Tidak ada koneksi.')); e.jaringan = true; throw e; }
-      if (!res.success) { const e = new Error(res.message || 'Terjadi kesalahan.'); e.code = res.code; e.data = res.data; if (res.code === 'AUTH') API.onAuth && API.onAuth(); throw e; }
-      return res.data;
+      if (!res.success) {
+        if (res.code === 'AUTH') API.onAuth && API.onAuth();
+        if (opt.penuh) return res; // modul yang butuh {success,data,message} utuh (mis. pengaturan AI)
+        const e = new Error(res.message || 'Terjadi kesalahan.'); e.code = res.code; e.data = res.data; throw e;
+      }
+      return opt.penuh ? res : res.data;
     })();
     if (!opt.tulis) { inflight.set(k, p); p.then(() => inflight.delete(k), () => inflight.delete(k)); }
     return p;

@@ -3,9 +3,9 @@
   const { esc, ic } = App;
   App.views.login = { render(ctx) {
     App.title('Masuk');
-    ctx.el.innerHTML = '<div style="max-width:380px;margin:8vh auto 0" class="card">' +
-      '<div style="text-align:center;margin-bottom:18px"><img src="icons/icon-192.png" width="64" height="64" alt="" style="border-radius:16px">' +
-      '<h1 style="font-size:24px;margin-top:10px">Ruang Sambung</h1><div class="muted" style="font-size:13px">Data Jamaah &amp; Absensi Daerah Purwodadi</div></div>' +
+    ctx.el.innerHTML = '<div class="card" style="padding:24px 22px">' +
+      '<div style="text-align:center;margin-bottom:18px"><img class="logo-l" src="icons/logo-hijau.png" alt="Purwodadi Ruang Sambung" style="width:176px;height:auto;margin:0 auto">' +
+      '<img class="logo-d" src="icons/logo-mint.png" alt="" style="width:176px;height:auto;margin:0 auto"><div class="muted" style="font-size:13px;margin-top:10px">Data Jamaah &amp; Absensi Daerah Purwodadi</div></div>' +
       '<form id="f" autocomplete="on">' +
       '<div class="field"><label for="u">Username</label><input class="input" id="u" name="username" autocomplete="username" autocapitalize="none" required></div>' +
       '<div class="field"><label for="p">PIN</label><input class="input" id="p" name="password" type="password" inputmode="numeric" autocomplete="current-password" required></div>' +

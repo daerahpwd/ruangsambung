@@ -13,16 +13,22 @@
       const n = new Date();
       return '<div class="card" style="background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border:0"><div class="row">' +
         '<div class="tile" style="width:52px;height:52px;background:rgba(255,255,255,.14);color:#fff;font-size:18px">' + esc(App.inisial(u.nama)) + '</div>' +
-        '<div class="grow"><div style="font-size:18px;font-weight:700">' + esc(u.nama) + '</div><div style="font-size:12px;opacity:.75">' + esc(App.peran[u.role]) + (u.kelompok ? ' · ' + esc(u.kelompok) : '') + '</div></div>' +
+        '<div class="grow"><div style="font-size:18px;font-weight:700">' + esc(u.nama) + '</div><div style="font-size:12px;opacity:.75">' + esc(App.peran[u.role]) + (u.kelompok ? ' · ' + esc(u.kelompok) : u.desa ? ' · Desa ' + esc(u.desa) : '') + '</div></div>' +
         '<div style="text-align:right"><div style="font-size:10px;letter-spacing:.1em;color:#9fe3d4;font-weight:700">' + HARI[n.getDay()] + '</div><div style="font-size:28px;font-weight:800;line-height:1">' + n.getDate() + '</div><div style="font-size:11px;opacity:.75">' + BLN[n.getMonth()] + ' ' + n.getFullYear() + '</div></div></div></div>';
     }
     function filter() {
-      if (u.role === 'super_admin') {
-        const ds = (App.state.ref.desa || []), kl = f.desa ? (ds.filter(x => x.nama === f.desa)[0] || { kelompok: [] }).kelompok : ds.reduce((a, x) => a.concat(x.kelompok), []);
+      const lv = App.lv(), ds = (App.state.ref.desa || []);
+      if (adm && lv === 'daerah') {
+        const kl = f.desa ? (ds.filter(x => x.nama === f.desa)[0] || { kelompok: [] }).kelompok : ds.reduce((a, x) => a.concat(x.kelompok), []);
         return '<div class="row" style="margin-bottom:12px"><select class="input" id="fd" style="height:38px"><option value="">Semua desa</option>' + ds.map(x => '<option' + (x.nama === f.desa ? ' selected' : '') + '>' + esc(x.nama) + '</option>').join('') + '</select>' +
           '<select class="input" id="fk" style="height:38px"><option value="">Semua kelompok</option>' + kl.map(x => '<option' + (x.nama === f.kelompok ? ' selected' : '') + '>' + esc(x.nama) + '</option>').join('') + '</select></div>';
       }
-      return u.kelompok ? '<div class="row" style="margin-bottom:12px"><span class="chip">' + ic('lock', 14) + ' Kelompok ' + esc(u.kelompok) + '</span></div>' : '';
+      if (adm && lv === 'desa') {
+        const kl = (ds.filter(x => x.nama === u.desa)[0] || { kelompok: [] }).kelompok;
+        return '<div class="row" style="margin-bottom:12px"><span class="chip">' + ic('lock', 14) + ' Desa ' + esc(u.desa) + '</span><select class="input" id="fk" style="height:38px"><option value="">Semua kelompok</option>' + kl.map(x => '<option' + (x.nama === f.kelompok ? ' selected' : '') + '>' + esc(x.nama) + '</option>').join('') + '</select></div>';
+      }
+      const lock = u.kelompok ? 'Kelompok ' + u.kelompok : u.desa ? 'Desa ' + u.desa : '';
+      return lock ? '<div class="row" style="margin-bottom:12px"><span class="chip">' + ic('lock', 14) + ' ' + esc(lock) + '</span></div>' : '';
     }
     function kehadiran() {
       const k = d.kehadiran, t = k.hadir + k.izin + k.sakit + k.alfa;
@@ -40,6 +46,13 @@
         '<div class="row" style="background:var(--alt);border-radius:12px;padding:10px;text-align:center">' + [['Dewasa', j.dewasa], ['Duda & Janda', j.dudaJanda], ['Lansia', j.lansia]].map(x => '<div class="grow"><div class="muted" style="font-size:12px">' + x[0] + '</div><div style="font-weight:800;font-size:18px">' + x[1] + '</div></div>').join('') + '</div>' +
         '<button class="btn blk" id="wl" style="margin-top:12px;justify-content:space-between;background:var(--teal-soft);border-color:transparent;color:var(--tx)"><span class="row" style="gap:8px">' + ic('share') + ' Bagikan data lansia</span><span class="muted">' + j.lansia + ' orang ›</span></button></div>';
     }
+    function guru() {
+      const g = d.guru; if (!g) return '';
+      const mx = Math.max(g.MT, g.MS, g.Asisten, 1);
+      return '<div class="card"><div class="row between"><div class="label">Statistik Guru</div><span class="muted"><b>' + g.total + '</b> guru</span></div>' +
+        [['MT', 'MT', g.MT], ['MS', 'MS', g.MS], ['AG', 'Asisten guru', g.Asisten]].map(x => '<div class="row" style="margin:8px 0"><div class="tile" style="width:38px;height:38px;font-size:12px">' + x[0] + '</div><div class="grow"><div class="row between"><b style="font-size:13px">' + x[1] + '</b><b style="font-size:16px">' + x[2] + '</b></div>' +
+          bar([{ v: x[2], c: 'var(--teal)' }, { v: mx - x[2], c: 'transparent' }]) + '</div></div>').join('') + '</div>';
+    }
     function generus() {
       const g = d.generus, mx = Math.max.apply(null, g.grup.map(x => x.total).concat([1]));
       return '<div class="card"><div class="row between"><div class="label">Data Generus</div><span><b>' + g.total + '</b> Generus <span class="muted">[L ' + g.L + ' · P ' + g.P + ']</span></span></div><div class="list">' +
@@ -49,12 +62,12 @@
       return '<div class="card"><div class="row between"><div class="label">Kegiatan Mendatang</div><a href="#/kegiatan" style="color:var(--teal);font-weight:700">Lihat Semua ›</a></div>' +
         (d.mendatang.length ? '<div class="list">' + d.mendatang.map(k => { const m = /^\d{4}-(\d{2})-(\d{2})/.exec(k.tanggal) || [0, 1, 1];
           return '<a href="#/kegiatan/' + esc(k.id) + '"><div class="tile" style="width:48px;height:48px;flex-direction:column;line-height:1.1"><b style="font-size:18px">' + (+m[2]) + '</b><small style="font-size:9px">' + BLN[+m[1] - 1].toUpperCase() + '</small></div>' +
-            '<div class="grow"><b>' + esc(k.nama) + '</b><div class="row" style="margin-top:4px;gap:6px"><span class="chip soft">' + esc(k.tingkat) + '</span><span class="chip">' + esc(k.secara) + '</span><span class="muted" style="font-size:12px">' + (k.jam ? esc(k.jam) : '') + '</span></div></div></a>'; }).join('') + '</div>'
+            '<div class="grow"><b>' + esc(k.nama) + '</b><div class="row" style="margin-top:4px;gap:6px"><span class="chip soft">' + esc(k.tingkat) + '</span>' + (k.kelompok && k.tingkat !== 'Kelompok' ? '<span class="chip">' + esc(k.kelompok) + '</span>' : '') + '<span class="chip">' + esc(k.secara) + '</span><span class="muted" style="font-size:12px">' + (k.jam ? esc(k.jam) : '') + '</span></div></div></a>'; }).join('') + '</div>'
           : '<div class="empty"><b>Belum ada kegiatan</b>' + (adm ? '<a class="btn pri sm" href="#/kegiatan/baru" style="margin-top:10px">Buat Kegiatan</a>' : '') + '</div>') + '</div>';
     }
     function tampil() {
       if (!d) { el.innerHTML = profil() + App.skeleton(3); return; }
-      el.innerHTML = profil() + filter() + kehadiran() + (adm ? jamaah() + generus() : '') + mendatang();
+      el.innerHTML = profil() + filter() + kehadiran() + (adm ? jamaah() + guru() + generus() : '') + mendatang();
       const q = id => el.querySelector(id);
       if (q('#fd')) q('#fd').onchange = e => { f.desa = e.target.value; f.kelompok = ''; muat(); tampil(); };
       if (q('#fk')) q('#fk').onchange = e => { f.kelompok = e.target.value; muat(); };

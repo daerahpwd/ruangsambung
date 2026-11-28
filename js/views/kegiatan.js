@@ -24,7 +24,7 @@
       ls.innerHTML = data.length ? data.map(k => {
         const belum = k.status !== 'Batal' && k.dicek === 0 && k.tanggal <= h;
         return '<div class="card" style="padding:12px"><div class="row" data-go="#/kegiatan/' + esc(k.id) + '" style="cursor:pointer">' + tile(k.tanggal) +
-          '<div class="grow"><b style="font-size:15px">' + esc(k.nama) + '</b><div class="row" style="gap:6px;margin:4px 0;flex-wrap:wrap"><span class="chip soft">' + esc(wilayah(k)) + '</span><span class="chip">' + esc(k.secara) + '</span>' + (k.status === 'Batal' ? '<span class="pill p-alfa">Batal</span>' : '') + '</div>' +
+          '<div class="grow"><b style="font-size:15px">' + esc(k.nama) + '</b><div class="row" style="gap:6px;margin:4px 0;flex-wrap:wrap"><span class="chip soft">' + esc(wilayah(k)) + '</span>' + (k.kelompok && k.tingkat !== 'Kelompok' ? '<span class="chip">Dicatat: ' + esc(k.kelompok) + '</span>' : '') + '<span class="chip">' + esc(k.secara) + '</span>' + (k.status === 'Batal' ? '<span class="pill p-alfa">Batal</span>' : '') + '</div>' +
           '<div class="muted" style="font-size:12px">' + (k.tempat ? esc(k.tempat) + ' · ' : '') + esc(jam(k)) + '</div></div></div>' +
           '<div class="row between" style="margin-top:10px"><div class="grow">' + (k.peserta ? '<div class="muted" style="font-size:12px;margin-bottom:4px">' + (belum ? '<span class="pill p-sakit">Belum diabsen</span> ' : '') + 'Absensi ' + k.dicek + '/' + k.peserta + '</div><div class="bar" style="width:70%"><i style="width:' + Math.min(100, k.dicek * 100 / k.peserta) + '%;background:var(--teal)"></i></div>' : '<span class="muted" style="font-size:12px">Belum ada peserta sesuai kriteria</span>') + '</div>' +
           '<div class="row"><button class="btn sm" data-wa="' + esc(k.id) + '" aria-label="Bagikan ke WhatsApp" style="color:#25D366">' + ic('share', 16) + '</button>' + (k.status !== 'Batal' ? '<button class="btn sm pri" data-ab="' + esc(k.id) + '">' + ic('check', 16) + ' Absen</button>' : '') + '</div></div></div>';
@@ -52,13 +52,13 @@
       const c = k.hitung, tot = c.Hadir + c.Izin + c.Sakit + c.Alfa, batal = k.status === 'Batal', t = cari.toLowerCase();
       const daftar = (k.daftar || []).filter(j => !t || j.nama.toLowerCase().indexOf(t) > -1);
       d.innerHTML = '<div class="card" style="padding:0;overflow:hidden"><div style="background:var(--navy);color:#fff;padding:16px"><h1 style="font-size:19px">' + esc(k.nama) + '</h1><div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><span class="chip">' + esc(wilayah(k)) + '</span><span class="chip">' + esc(k.secara) + '</span>' + (batal ? '<span class="pill p-alfa">Batal</span>' : '') + '</div></div><div style="padding:12px 16px">' +
-        baris('calendar', tgl(k.tanggal)) + baris('clock', jam(k)) + baris('map', k.tempat) + baris('user', k.pemateri ? 'Pemateri: ' + k.pemateri : '') + baris('chart', k.materi ? 'Materi: ' + k.materi : '') + baris('download', k.infaq ? 'Infaq: ' + App.rupiah(k.infaq) : '') + '</div></div>' +
+        baris('calendar', tgl(k.tanggal)) + baris('users', k.kelompok && k.tingkat !== 'Kelompok' ? 'Dicatat oleh kelompok ' + k.kelompok + ' (peserta: jamaah kelompok ini)' : '') + baris('clock', jam(k)) + baris('map', k.tempat) + baris('user', k.pemateri ? 'Pemateri: ' + k.pemateri : '') + baris('chart', k.materi ? 'Materi: ' + k.materi : '') + baris('download', k.infaq ? 'Infaq: ' + App.rupiah(k.infaq) : '') + '</div></div>' +
         '<div class="card"><div class="row" style="text-align:center">' + [['Peserta', k.peserta, 'tx'], ['Hadir', c.Hadir, 'hadir'], ['Izin', c.Izin, 'izin'], ['Sakit', c.Sakit, 'sakit'], ['Alfa', c.Alfa, 'alfa']].map(x => '<div class="grow"><div class="muted" style="font-size:11px">' + x[0] + '</div><div style="font-weight:800;font-size:20px;color:var(--' + x[2] + ')">' + x[1] + '</div></div>').join('') + '</div><div style="margin-top:10px" class="bar">' +
         [['hadir', c.Hadir], ['izin', c.Izin], ['sakit', c.Sakit], ['alfa', c.Alfa]].map(x => '<i style="width:' + (tot ? x[1] * 100 / tot : 0) + '%;background:var(--' + x[0] + ')"></i>').join('') + '</div>' + (k.peserta ? '<div class="muted" style="font-size:12px;margin-top:6px">Sudah dicek ' + tot + ' dari ' + k.peserta + '</div>' : '') + '</div>' +
         '<div class="seg"><button data-tab="ringkasan" class="' + (tab === 'ringkasan' ? 'on' : '') + '">Ringkasan</button><button data-tab="peserta" class="' + (tab === 'peserta' ? 'on' : '') + '">Peserta (' + (k.daftar || []).length + ')</button></div>' +
         (tab === 'peserta' ? '<input class="input" id="cr" placeholder="Cari nama" value="' + esc(cari) + '" style="margin-bottom:8px"><div class="card" style="padding:4px 16px"><div class="list">' + (daftar.length ? daftar.map(j => '<div><div class="grow"><b>' + esc(j.nama) + '</b><div class="muted" style="font-size:12px">' + esc(j.kelompok) + ' · ' + esc(j.jenjang) + '</div></div><span class="pill ' + (PILL[j.status] || 'p-belum') + '">' + (j.status || 'Belum') + '</span></div>').join('') : '<div class="empty">Tidak ada peserta</div>') + '</div></div>'
-          : '<div class="card muted" style="font-size:13px">Peserta: ' + esc(k.jenjang ? k.jenjang.split(',').join(', ') : 'Semua jenjang') + (k.jk === 'L' ? ' (laki-laki)' : k.jk === 'P' ? ' (perempuan)' : '') + '.</div>') +
-        '<div class="sticky-bar">' + (batal ? '' : '<a class="btn pri grow" href="#/absen/' + esc(k.id) + '">' + ic('check') + ' ' + (tot ? 'Ubah Absen' : 'Mulai Absen') + '</a>') + '<button class="btn wa grow" id="wa">' + ic('share') + ' Bagikan WA</button>' + (App.isAdmin() && !batal ? '<button class="btn" id="mn" aria-label="Menu">' + ic('more') + '</button>' : '') + '</div>';
+          : '<div class="card muted" style="font-size:13px">Peserta: ' + esc(k.jenjang ? k.jenjang.split(',').join(', ') : 'Semua jenjang') + (k.guru ? ' · guru ' + esc(k.guru.split(',').join(', ')) : '') + (k.jk === 'L' ? ' (laki-laki)' : k.jk === 'P' ? ' (perempuan)' : '') + '.</div>') +
+        '<div class="sticky-bar">' + (batal ? '' : '<a class="btn pri grow" href="#/absen/' + esc(k.id) + '">' + ic('check') + ' ' + (tot ? 'Ubah Absen' : 'Mulai Absen') + '</a>') + '<button class="btn wa grow" id="wa">' + ic('share') + ' Bagikan WA</button>' + (k.kelola && !batal ? '<button class="btn" id="mn" aria-label="Menu">' + ic('more') + '</button>' : '') + '</div>';
       const q = s => d.querySelector(s);
       d.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; gambar(); });
       if (q('#cr')) { q('#cr').oninput = e => { cari = e.target.value; const p = e.target.selectionStart; gambar(); const n = q('#cr'); n.focus(); n.setSelectionRange(p, p); }; }
@@ -76,48 +76,59 @@
   }
 
   // ================= FORM =================
+  const GURU = ['MT', 'MS', 'Asisten guru'];   // Non guru diabaikan
   async function form(el, id) {
-    const u = st().user, kunci = u.role === 'admin_kelompok', ref = st().ref;
-    let k = { tingkat: kunci ? 'Kelompok' : 'Desa', wilayah: kunci ? u.kelompok : '', nama: '', secara: 'Offline', tanggal: hariIni(), tempat: '', jamMulai: '', jamSelesai: '', jenjang: '', jk: 'LP', materi: '', pemateri: '', infaq: 0 };
+    const u = st().user, lv = App.lv(), ref = st().ref, tingkatOpsi = lv === 'desa' ? ['Desa', 'Kelompok'] : ['Daerah', 'Desa', 'Kelompok'];
+    let k = { tingkat: lv === 'kelompok' ? 'Kelompok' : 'Desa', wilayah: '', nama: '', secara: 'Offline', tanggal: hariIni(), tempat: '', jamMulai: '', jamSelesai: '', jenjang: '', guru: '', jk: 'LP', materi: '', pemateri: '', infaq: 0 };
     if (id) { try { k = await API.call('kegiatan.get', { id: id }); } catch (e) { el.innerHTML = '<div class="empty"><b>Kegiatan tidak ditemukan</b></div>'; return; } }
     App.title(id ? 'Ubah Kegiatan' : 'Buat Kegiatan');
-    const pil = new Set(String(k.jenjang || '').split(',').filter(Boolean)); let jk = k.jk || 'LP', secara = k.secara || 'Offline';
+    const pil = new Set(String(k.jenjang || '').split(',').filter(Boolean)), gr = new Set(String(k.guru || '').split(',').filter(Boolean)); let jk = k.jk || 'LP', secara = k.secara || 'Offline';
     const fld = (l, h) => '<div class="field"><label>' + l + '</label>' + h + '</div>', val = v => esc(v == null ? '' : v);
+    const kelompokBoleh = ref.desa.filter(d => lv !== 'desa' || d.nama === u.desa).reduce((a, d) => a.concat(d.kelompok.map(x => x.nama)), []);
+    const chipBtn = (a, v, on) => '<button type="button" class="chip btn-chip' + (on ? ' on' : '') + '" ' + a + '="' + esc(v) + '">' + esc(v) + '</button>';
     el.innerHTML = '<a href="' + (id ? '#/kegiatan/' + esc(id) : '#/kegiatan') + '" class="row muted" style="margin-bottom:8px">' + ic('back') + ' Kembali</a><h1 style="font-size:20px;margin-bottom:12px">' + (id ? 'Ubah Kegiatan' : 'Buat Kegiatan') + '</h1><form id="f" novalidate>' +
       '<div class="card"><div class="label">Kegiatan</div>' +
-      fld('Tingkat *', kunci ? '<div class="chip">' + ic('lock', 14) + ' Kelompok ' + esc(u.kelompok) + '</div>' : '<select class="input" id="tg">' + (L().tingkat || []).map(t => '<option' + (t === k.tingkat ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>') +
-      '<div id="wl"></div>' + fld('Nama kegiatan *', '<input class="input" id="nm" list="dl" value="' + val(k.nama) + '" placeholder="Pilih atau ketik sendiri" autocomplete="off"><datalist id="dl">' + (L().nama_kegiatan || []).map(n => '<option value="' + esc(n) + '">').join('') + '</datalist>') +
-      fld('Secara', '<div class="row" id="sc">' + (L().secara || ['Online', 'Offline', 'Hybrid']).map(s => '<button type="button" class="chip btn-chip' + (s === secara ? ' on' : '') + '" data-s="' + s + '" style="height:38px;padding:0 16px">' + s + '</button>').join('') + '</div>') +
+      fld('Tingkat *', '<select class="input" id="tg">' + tingkatOpsi.map(t => '<option' + (t === k.tingkat ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>') +
+      '<div id="wl"></div><div id="ct"></div>' + fld('Nama kegiatan *', '<input class="input" id="nm" list="dl" value="' + val(k.nama) + '" placeholder="Pilih atau ketik sendiri" autocomplete="off"><datalist id="dl">' + (L().nama_kegiatan || []).map(n => '<option value="' + esc(n) + '">').join('') + '</datalist>') +
+      fld('Secara', '<div class="row" id="sc">' + (L().secara || ['Online', 'Offline', 'Hybrid']).map(x => '<button type="button" class="chip btn-chip' + (x === secara ? ' on' : '') + '" data-s="' + x + '" style="height:38px;padding:0 16px">' + x + '</button>').join('') + '</div>') +
       '<div class="row"><div class="field grow"><label>Tanggal *</label><input class="input" type="date" id="tn" value="' + val(k.tanggal) + '"></div></div><div class="row"><div class="field grow"><label>Jam mulai</label><input class="input" type="time" id="jm" value="' + val(k.jamMulai) + '"></div><div class="field grow"><label>Jam selesai</label><input class="input" type="time" id="js" value="' + val(k.jamSelesai) + '"></div></div>' +
       fld('Tempat', '<input class="input" id="tp" value="' + val(k.tempat) + '">') + '</div>' +
-      '<div class="card"><div class="label">Peserta (yang berkewajiban hadir)</div><div class="row" id="jn" style="flex-wrap:wrap;gap:6px">' + (L().jenjang || []).map(j => '<button type="button" class="chip btn-chip' + (pil.has(j) ? ' on' : '') + '" data-j="' + esc(j) + '">' + esc(j) + '</button>').join('') + '</div><div class="muted" style="font-size:12px;margin:6px 0 10px">Kosongkan jika untuk semua jenjang.</div>' +
+      '<div class="card"><div class="label">Peserta (yang berkewajiban hadir)</div>' +
+      '<div class="muted" style="font-size:12px;margin-bottom:6px">Jenjang</div><div class="row" id="jn" style="flex-wrap:wrap;gap:6px">' + (L().jenjang || []).map(j => chipBtn('data-j', j, pil.has(j))).join('') + '</div>' +
+      '<div class="muted" style="font-size:12px;margin:12px 0 6px">Guru (Non guru diabaikan)</div><div class="row" id="gu" style="flex-wrap:wrap;gap:6px">' + GURU.map(g => chipBtn('data-g', g, gr.has(g))).join('') + '</div>' +
+      '<div class="muted" style="font-size:12px;margin:6px 0 10px">Kosongkan jenjang/guru bila untuk semua. Bila keduanya dipilih, peserta harus memenuhi keduanya.</div>' +
       '<div class="row" id="jkb">' + [['LP', 'Semua'], ['L', 'Laki-laki'], ['P', 'Perempuan']].map(x => '<button type="button" class="chip btn-chip' + (x[0] === jk ? ' on' : '') + '" data-k="' + x[0] + '" style="height:38px;padding:0 16px">' + x[1] + '</button>').join('') + '</div>' +
-      (App.isAdmin() ? '<div class="row" style="background:var(--teal-soft);border-radius:12px;padding:10px 12px;margin-top:12px;color:var(--teal);font-weight:700">' + ic('users') + '<span id="est"></span></div>' : '') + '</div>' +
+      '<div class="row" style="background:var(--teal-soft);border-radius:12px;padding:10px 12px;margin-top:12px;color:var(--teal);font-weight:700">' + ic('users') + '<span id="est"></span></div></div>' +
       '<div class="card"><div class="label">Lainnya</div>' + fld('Rencana materi', '<textarea class="input" id="mt" rows="2">' + val(k.materi) + '</textarea>') + fld('Pemateri', '<input class="input" id="pm" value="' + val(k.pemateri) + '">') + fld('Infaq (Rp)', '<input class="input" id="ij" inputmode="numeric" value="' + (k.infaq || '') + '" placeholder="0">') + '</div>' +
       '<div class="err" id="e" hidden></div><div class="sticky-bar"><a class="btn grow" href="' + (id ? '#/kegiatan/' + esc(id) : '#/kegiatan') + '">Batal</a><button class="btn pri grow" id="sv">Simpan</button></div></form>';
-    const q = s => el.querySelector(s), tg = () => kunci ? 'Kelompok' : q('#tg').value;
-    function wil() {
-      const t = tg(); let h = '';
-      if (t === 'Desa') h = fld('Desa *', '<select class="input" id="wv"><option value="">Pilih desa…</option>' + ref.desa.map(d => '<option' + (d.nama === k.wilayah ? ' selected' : '') + '>' + esc(d.nama) + '</option>').join('') + '</select>');
-      else if (t === 'Kelompok' && !kunci) h = fld('Kelompok *', '<select class="input" id="wv"><option value="">Pilih kelompok…</option>' + ref.desa.map(d => d.kelompok.map(x => '<option' + (x.nama === k.wilayah ? ' selected' : '') + '>' + esc(x.nama) + '</option>').join('')).join('') + '</select>');
-      q('#wl').innerHTML = h; if (q('#wv')) q('#wv').onchange = e => { k.wilayah = e.target.value; taksir(); };
+    const q = s2 => el.querySelector(s2), tg = () => q('#tg').value;
+    const kunciChip = t => '<div class="field"><div class="chip">' + ic('lock', 14) + ' ' + esc(t) + '</div></div>';
+    function wil() { // pilihan wilayah mengikuti tingkat & peran
+      const t = tg(); let h = '', c = '';
+      if (t === 'Daerah') h = kunciChip('Seluruh daerah');
+      else if (t === 'Desa') h = lv === 'daerah' ? fld('Desa *', '<select class="input" id="wv"><option value="">Pilih desa…</option>' + ref.desa.map(d => '<option' + (d.nama === k.wilayah ? ' selected' : '') + '>' + esc(d.nama) + '</option>').join('') + '</select>') : kunciChip('Desa ' + u.desa);
+      else h = lv === 'kelompok' ? kunciChip('Kelompok ' + u.kelompok) : fld('Kelompok *', '<select class="input" id="wv"><option value="">Pilih kelompok…</option>' + kelompokBoleh.map(x => '<option' + (x === k.wilayah ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select>');
+      if (lv === 'kelompok' && t !== 'Kelompok') c = '<div class="card" style="background:var(--teal-soft);border-color:transparent;font-size:12.5px;margin-bottom:12px">Kegiatan tingkat ' + t + ' ini <b>dicatat atas nama Kelompok ' + esc(u.kelompok) + '</b>. Pesertanya jamaah kelompok Anda, sehingga Admin ' + (t === 'Desa' ? 'Desa' : 'Desa dan Daerah') + ' dapat melihat bahwa kelompok Anda sudah absen.</div>';
+      q('#wl').innerHTML = h; q('#ct').innerHTML = c; if (q('#wv')) q('#wv').onchange = e => { k.wilayah = e.target.value; taksir(); };
       taksir();
     }
-    function taksir() { // perkiraan jumlah peserta aktif, dihitung di perangkat dari daftar jamaah
-      if (!q('#est')) return; const t = tg(), w = kunci ? u.kelompok : (q('#wv') ? q('#wv').value : '');
-      const n = (st().jamaah || []).filter(j => j.status === 'Aktif' && (t === 'Daerah' || (t === 'Desa' && j.desa === w) || (t === 'Kelompok' && j.kelompok === w)) && (!pil.size || pil.has(j.jenjang)) && (jk === 'LP' || j.jk === jk)).length;
+    function taksir() { // perkiraan peserta aktif, dihitung di perangkat dari daftar jamaah yang boleh dilihat
+      const t = tg(), w = q('#wv') ? q('#wv').value : (t === 'Desa' ? u.desa : t === 'Kelompok' ? u.kelompok : '');
+      const n = (st().jamaah || []).filter(j => j.status === 'Aktif' && (t === 'Daerah' || (t === 'Desa' && j.desa === w) || (t === 'Kelompok' && j.kelompok === w)) &&
+        (!pil.size || pil.has(j.jenjang)) && (!gr.size || gr.has(j.guru)) && (jk === 'LP' || j.jk === jk)).length;
       q('#est').textContent = 'Perkiraan peserta aktif: ' + n + ' orang';
     }
-    if (q('#tg')) q('#tg').onchange = () => { k.wilayah = ''; wil(); }; wil();
+    q('#tg').onchange = () => { k.wilayah = ''; wil(); }; wil();
     q('#sc').onclick = e => { const b = e.target.closest('[data-s]'); if (b) { secara = b.dataset.s; q('#sc').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b)); } };
     q('#jn').onclick = e => { const b = e.target.closest('[data-j]'); if (b) { pil.has(b.dataset.j) ? pil.delete(b.dataset.j) : pil.add(b.dataset.j); b.classList.toggle('on'); taksir(); } };
+    q('#gu').onclick = e => { const b = e.target.closest('[data-g]'); if (b) { gr.has(b.dataset.g) ? gr.delete(b.dataset.g) : gr.add(b.dataset.g); b.classList.toggle('on'); taksir(); } };
     q('#jkb').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { jk = b.dataset.k; q('#jkb').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b)); taksir(); } };
     q('#f').onsubmit = async ev => {
-      ev.preventDefault(); const e = q('#e'), b = q('#sv'); e.hidden = true;
-      const d = { tingkat: tg(), wilayah: kunci ? u.kelompok : (q('#wv') ? q('#wv').value : ''), nama: q('#nm').value.trim(), secara: secara, tanggal: q('#tn').value, tempat: q('#tp').value.trim(), jamMulai: q('#jm').value, jamSelesai: q('#js').value,
-        jenjang: Array.from(pil), jk: jk, materi: q('#mt').value.trim(), pemateri: q('#pm').value.trim(), infaq: Number(String(q('#ij').value).replace(/\D/g, '')) || 0 };
+      ev.preventDefault(); const e = q('#e'), b = q('#sv'); e.hidden = true; const t = tg();
+      const d = { tingkat: t, wilayah: q('#wv') ? q('#wv').value : '', nama: q('#nm').value.trim(), secara: secara, tanggal: q('#tn').value, tempat: q('#tp').value.trim(), jamMulai: q('#jm').value, jamSelesai: q('#js').value,
+        jenjang: Array.from(pil), guru: Array.from(gr), jk: jk, materi: q('#mt').value.trim(), pemateri: q('#pm').value.trim(), infaq: Number(String(q('#ij').value).replace(/\D/g, '')) || 0 };
       if (id) d.id = id;
-      if (!d.nama || !d.tanggal || (d.tingkat !== 'Daerah' && !d.wilayah)) { e.textContent = 'Nama, tanggal, dan wilayah wajib diisi.'; e.hidden = false; return; }
+      if (!d.nama || !d.tanggal || (q('#wv') && !d.wilayah)) { e.textContent = 'Nama, tanggal, dan wilayah wajib diisi.'; e.hidden = false; return; }
       b.disabled = true; b.textContent = 'Menyimpan…';
       try { const r = await API.tulis('kegiatan.save', d, INV); App.toast('Kegiatan tersimpan', 'ok'); App.go('#/kegiatan/' + r.id); segarkan(); }
       catch (x) { b.disabled = false; b.textContent = 'Simpan'; e.textContent = x.message; e.hidden = false; }

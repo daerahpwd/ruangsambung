@@ -4,7 +4,8 @@
   const PILL = { Aktif: 'p-aktif', Pindah: 'p-pindah', Meninggal: 'p-meninggal' };
   const dasar = ['jamaah.', 'dash.', 'laporan.', 'boot'];
   const opsi = (arr, pilih, kosong) => (kosong !== undefined ? '<option value="">' + esc(kosong) + '</option>' : '') + (arr || []).map(v => '<option' + (v === pilih ? ' selected' : '') + '>' + esc(v) + '</option>').join('');
-  const kelompokSemua = () => (st().ref.desa || []).reduce((a, d) => a.concat(d.kelompok.map(k => ({ nama: k.nama, desa: d.nama, sub: k.sub }))), []);
+  const desaBoleh = () => (st().ref.desa || []).filter(d => App.lv() !== 'desa' || d.nama === st().user.desa);
+  const kelompokSemua = () => desaBoleh().reduce((a, d) => a.concat(d.kelompok.map(k => ({ nama: k.nama, desa: d.nama, sub: k.sub }))), []);
   function umur(t) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t || ''); if (!m) return ''; const n = new Date(); let u = n.getFullYear() - m[1]; if (n.getMonth() + 1 < +m[2] || (n.getMonth() + 1 === +m[2] && n.getDate() < +m[3])) u--; return u < 0 ? '' : u; }
   function saran(u) { return u === '' ? '' : u <= 4 ? 'Balita (0-4 tahun)' : u >= 60 ? 'Lansia (60+)' : u >= 18 ? 'Dewasa' : ''; }
   const cari = id => (st().jamaah || []).filter(j => j.id === id)[0];
@@ -23,7 +24,7 @@
     el.innerHTML = '<div class="row between" style="margin-bottom:10px"><h1 style="font-size:20px">Data</h1><div class="row"><a class="btn sm" href="#/data/impor">' + ic('upload', 16) + ' Impor</a><a class="btn pri sm" href="#/data/baru">' + ic('plus', 16) + ' Tambah</a></div></div>' +
       '<div class="field"><div style="position:relative"><span style="position:absolute;left:12px;top:12px;color:var(--tx2)">' + ic('search') + '</span><input class="input" id="q" placeholder="Cari nama atau panggilan" style="padding-left:40px" autocomplete="off"></div></div>' +
       '<div class="row" style="flex-wrap:wrap;margin-bottom:10px">' +
-      (kelompokTerkunci ? '<span class="chip">' + ic('lock', 14) + ' ' + esc(u.kelompok) + '</span>' : '<select class="input" id="fd" style="width:auto;height:36px"><option value="">Semua desa</option>' + opsi((st().ref.desa || []).map(d => d.nama)) + '</select><select class="input" id="fk" style="width:auto;height:36px"></select>') +
+      (kelompokTerkunci ? '<span class="chip">' + ic('lock', 14) + ' ' + esc(u.kelompok) + '</span>' : '<select class="input" id="fd" style="width:auto;height:36px"><option value="">Semua desa</option>' + opsi(desaBoleh().map(d => d.nama)) + '</select><select class="input" id="fk" style="width:auto;height:36px"></select>') +
       '<select class="input" id="fj" style="width:auto;height:36px"><option value="">Semua jenjang</option>' + opsi(L().jenjang) + '</select>' +
       '<select class="input" id="fs" style="width:auto;height:36px">' + opsi(['Aktif', 'Pindah', 'Meninggal'], 'Aktif', 'Semua status') + '</select>' +
       '<select class="input" id="fg" style="width:auto;height:36px"><option value="">L &amp; P</option><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>' +

@@ -31,8 +31,12 @@
   App.tgl = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? (+m[3]) + ' ' + BLN[+m[2] - 1] + ' ' + m[1] : (s || '-'); };
   App.rupiah = n => (Number(n) ? 'Rp ' + String(Number(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '-');
   App.inisial = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-  App.peran = { super_admin: 'Super Admin', admin_kelompok: 'Admin Kelompok', operator_l: 'Operator Laki-laki', operator_p: 'Operator Perempuan' };
-  App.isAdmin = () => !!App.state.user && [SA, AK].indexOf(App.state.user.role) > -1;
+  // 9 peran: tiga admin (Daerah/Desa/Kelompok) + operator laki-laki & perempuan di tiap tingkat
+  App.peran = { super_admin: 'Admin Daerah', admin_desa: 'Admin Desa', admin_kelompok: 'Admin Kelompok', operator_l: 'Operator Daerah (L)', operator_p: 'Operator Daerah (P)',
+    operator_desa_l: 'Operator Desa (L)', operator_desa_p: 'Operator Desa (P)', operator_kelompok_l: 'Operator Kelompok (L)', operator_kelompok_p: 'Operator Kelompok (P)' };
+  App.lvDari = r => /^operator_desa|^admin_desa/.test(r) ? 'desa' : /kelompok/.test(r) ? 'kelompok' : 'daerah';
+  App.isAdmin = () => { const u = App.state.user; return !!u && (u.admin === undefined ? [SA, AK, 'admin_desa'].indexOf(u.role) > -1 : u.admin); };
+  App.lv = () => { const u = App.state.user; return !u ? 'daerah' : (u.lv || App.lvDari(u.role)); };   // tingkat wilayah: daerah | desa | kelompok
   App.isSuper = () => !!App.state.user && App.state.user.role === SA;
   App.warnaDesa = d => { const x = ((App.state.ref || {}).desa || []).filter(v => v.nama === d)[0]; return x ? x.warna : '#9aa7b8'; };
   App.skeleton = (n) => Array.from({ length: n || 3 }, () => '<div class="card"><div class="sk" style="height:14px;width:40%;margin-bottom:12px"></div><div class="sk" style="height:34px;width:30%;margin-bottom:12px"></div><div class="sk" style="height:8px"></div></div>').join('');
@@ -70,16 +74,13 @@
   // ---------- Navigasi per peran ----------
   function bangunNav() {
     const u = App.state.user, adm = App.isAdmin();
-    const item = [['beranda', 'Beranda', 'home'], ['kegiatan', 'Kegiatan', 'calendar'], adm && ['data', 'Data', 'users'], ['saya', 'Saya', 'user']].filter(Boolean);
+    const item = [['beranda', 'Beranda', 'home'], ['kegiatan', 'Kegiatan', 'calendar'], adm && ['data', 'Data', 'users'], ['asisten', 'Asisten', 'sparkles'], ['saya', 'Saya', 'user']].filter(Boolean);
     const tengah = Math.ceil(item.length / 2);
-    $('#nav').innerHTML = item.map((x, i) => (i === tengah ? '<span class="gap"></span>' : '') + '<a href="#/' + x[0] + '" data-k="' + x[0] + '">' + App.ic(x[2]) + '<span>' + x[1] + '</span></a>').join('');
+    $('#nav').innerHTML = '<div class="navbrand"><img src="icons/logo-putih.png" alt="Ruang Sambung"></div>' + item.map((x, i) => (i === tengah ? '<span class="gap"></span>' : '') + '<a href="#/' + x[0] + '" data-k="' + x[0] + '">' + App.ic(x[2]) + '<span>' + x[1] + '</span></a>').join('');
     document.body.dataset.fab = adm ? '1' : '0';
     $('#fab').innerHTML = App.ic('plus', 26);
-    $('#btnAI').hidden = !App.state.ai;
-    if (u) $('#btnAI').innerHTML = App.ic('sparkles');
   }
   $('#fab').onclick = () => App.go('#/kegiatan/baru');
-  $('#btnAI').onclick = async () => { await muatView('ai'); App.views.ai && App.views.ai.buka(); };
   document.addEventListener('click', e => { const a = e.target.closest('[data-go]'); if (a) { e.preventDefault(); App.go(a.dataset.go); } });
 
   // ---------- Router (hash) + muat halaman lazy ----------
@@ -94,7 +95,7 @@
     });
   }
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); App.installEvt = e; App.emit('install'); }); // tombol "Pasang aplikasi" di menu Saya
-  App.muat = muatView; // dipakai halaman lain untuk memuat modul lazy (mis. 'wa', 'ai')
+  App.muat = muatView; // dipakai halaman lain untuk memuat modul lazy (mis. 'wa')
   const ALIAS = { absen: 'kegiatan' };
   function parse() { const p = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent); return { nama: p[0] || 'beranda', params: p.slice(1) }; }
   async function route() {
@@ -119,7 +120,7 @@
 
   // ---------- Sesi & boot ----------
   App.masuk = (token, user) => { API.setSession(token, user.username); App.state.user = user; };
-  App.keluar = () => { API.clear(); App.state.user = null; App.state.jamaah = null; $('#nav').innerHTML = ''; location.hash = '#/login'; };
+  App.keluar = () => { API.clear(); App._pf = false; App.state.user = null; App.state.jamaah = null; $('#nav').innerHTML = ''; location.hash = '#/login'; };
   API.onAuth = () => { if (App.state.user) { App.toast('Sesi berakhir, silakan masuk lagi.', 'warn'); App.keluar(); } };
 
   function terapBoot(d) {
@@ -127,6 +128,7 @@
     if (d.jamaah) App.state.jamaah = d.jamaah.rows;
     if (d.beranda) App.state.beranda = d.beranda;
     bangunNav(); App.emit('boot', d);
+    if (!App._pf) { App._pf = true; App.prefetch(); }
   }
   let diroute = false;
   // Muat awal 1 panggilan (server mengabaikan jamaah untuk operator). Dipakai juga setelah login.
@@ -144,6 +146,16 @@
     try { await App.boot(); } catch (e) { if (!App.state.user) { if (e.jaringan) { $('#view').innerHTML = '<div class="empty"><b>Tidak ada koneksi</b>' + App.esc(e.message) + '</div>'; return; } API.clear(); } }
     if (!diroute) route();
   }
+  // Prefetch (performa): setelah tampil, siapkan skrip halaman & data menu lain di waktu senggang supaya klik antarmenu instan
+  App.prefetch = function () {
+    const idle = window.requestIdleCallback || (f => setTimeout(f, 600)), adm = App.isAdmin();
+    idle(async function () {
+      for (const n of ['kegiatan', 'saya', 'asisten'].concat(adm ? ['data', 'laporan', 'absen'] : ['absen'])) { try { await muatView(n); } catch (e) { } await new Promise(r => setTimeout(r, 120)); }
+      const tab = sessionStorage.getItem('rs_ktab') || 'mendatang';
+      API.baca('kegiatan.list', { tab: tab, tingkat: '' }, { segar: 60000 }).catch(() => { });
+      if (adm) API.baca('laporan.statistik', { tahun: String(new Date().getFullYear()) }, { segar: 60000 }).catch(() => { });
+    });
+  };
   App.rute = route;
   mulai();
 })();
